@@ -21,3 +21,56 @@ export async function scrapeAuctions() {
 
   return items;
 }
+
+function getValueByLabel($, label) {
+  const labelEl = $('strong').filter((_i, el) => $(el).text().trim() === label).first();
+  return labelEl.closest('td, th').next('td, th').text().trim();
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function scrapeAuctionDetail(url) {
+  const response = await fetch(url);
+  const html = await response.text();
+  const $ = cheerio.load(html);
+
+  const dates = $('.generalInfoTable2date');
+
+  return {
+    currentPrice: $('#ylemine_hetkhind').text().replace('Hetkehind:', '').trim(),
+    address: getValueByLabel($, 'aadress:'),
+    city: getValueByLabel($, 'linn / vald:'),
+    catastralUnit: getValueByLabel($, 'katastritunnus:'),
+    deposit: getValueByLabel($, 'tagatisraha:'),
+    registrationStart: dates.eq(0).text().trim(),
+    registrationEnd: dates.eq(1).text().trim(),
+    auctionStart: dates.eq(2).text().trim(),
+    auctionEnd: dates.eq(3).text().trim(),
+    announcement: {
+      header: $('.announcement-header').text().trim(),
+      date: $('.announcement-date').text().trim(),
+      body: $('.announcement-body').text().trim(),
+      menetluse_nr: $('.announcement-mennr').text().trim(),
+      provider: $('.announcement-provider').text().trim(),
+      publisher: $('.announcement-publisher').text().trim(),
+      number: $('.announcement-number').text().trim(),
+    },
+  };
+}
+
+const DETAIL_REQUEST_DELAY_MS = 400;
+
+export async function scrapeAuctionsWithDetails() {
+  const items = await scrapeAuctions();
+  const detailedAuctionItems = [];
+
+  for (const item of items) {
+    const detail = await scrapeAuctionDetail(item.url);
+    detailedAuctionItems.push({ ...item, ...detail });
+    await sleep(DETAIL_REQUEST_DELAY_MS);
+  }
+
+  return detailedAuctionItems;
+}
