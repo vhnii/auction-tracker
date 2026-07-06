@@ -1,10 +1,6 @@
 import * as cheerio from 'cheerio';
 
-export async function scrapeAuctions() {
-  const response = await fetch('https://www.oksjonikeskus.ee/?varaliik=KI&onpage=100');
-  const html = await response.text();
-  const $ = cheerio.load(html);
-
+function parseListingRows($) {
   const items = [];
   $('#content .enampakkumised table.pakkumiseAndmed').each((_i, el) => {
     const anchor = $(el).find('h2 a');
@@ -18,8 +14,18 @@ export async function scrapeAuctions() {
       catastralUnit: $(el).find('a[href*="maaamet.ee"]').text().trim(),
     });
   });
-
   return items;
+}
+
+export async function scrapeAuctions() {
+  const response = await fetch('https://www.oksjonikeskus.ee/?varaliik=KI&offers=aktiiv&onpage=100');
+  if (!response.ok) {
+    throw new Error(`Failed to fetch auction list: ${response.status}`);
+  }
+  const html = await response.text();
+  const $ = cheerio.load(html);
+
+  return parseListingRows($);
 }
 
 function getValueByLabel($, label) {
@@ -33,6 +39,9 @@ function sleep(ms) {
 
 export async function scrapeAuctionDetail(url) {
   const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch auction detail (${url}): ${response.status}`);
+  }
   const html = await response.text();
   const $ = cheerio.load(html);
 
