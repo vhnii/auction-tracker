@@ -1,11 +1,13 @@
 import express from 'express'
 import { scrapeAuctions } from './scraper.js'
+import { recordScrape } from './db/queries.js'
 
 const app = express()
 
 app.get('/', async (req, res) => {
     const items = await scrapeAuctions();
-    res.json({items: items});
+    recordScrape(items);
+    res.json({ scraped: items.length, timestamp: new Date().toISOString() });
 })
 
 app.listen(3000, () => {
