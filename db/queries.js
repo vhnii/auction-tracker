@@ -25,6 +25,10 @@ const activeAuctionIdsStmt = db.prepare(`SELECT id, auction_id FROM auctions WHE
 
 const endAuctionStmt = db.prepare(`UPDATE auctions SET ended_at = ? WHERE id = ?`);
 
+const soonestEndsAtStmt = db.prepare(`
+  SELECT MIN(ends_at) as soonest FROM auctions WHERE ended_at IS NULL
+`);
+
 export function recordScrape(items) {
   const now = new Date().toISOString();
   const seenAuctionIds = new Set();
@@ -61,4 +65,8 @@ export function recordScrape(items) {
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+export function getSoonestEndsAt() {
+  return soonestEndsAtStmt.get().soonest;
 }
