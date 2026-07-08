@@ -1,9 +1,47 @@
 import cron from 'node-cron';
-import { scrapeAuctions } from './scraper.js';
-import { recordScrape, getSoonestEndsAt } from './db/queries.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { scrapeAuctions, scrapeAuctionDetail } from './scraper.js';
+import { recordScrape, getSoonestEndsAt, getAuctionsMissingDetail, saveAuctionDetail } from './db/queries.js';
+import { downloadImage } from './utils/images.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGES_DIR = path.join(__dirname, 'db', 'images');
 
 const CLOSING_WINDOW_MS = 15 * 60 * 1000;
 const WATCH_INTERVAL_MS = 2 * 60 * 1000;
+const DETAIL_REQUEST_DELAY_MS = 400;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function scrapeMissingDetails() {
+  const pending = getAuctionsMissingDetail();
+  let succeeded = 0;
+
+  for (const auction of pending) {
+    try {
+      const detail = await scrapeAuctionDetail(auction.url);
+
+      const imageRecords = [];
+      for (const thumbUrl of detail.images) {
+        const { filename, sourceUrl } = await downloadImage(thumbUrl, path.join(IMAGES_DIR, auction.auction_id));
+        imageRecords.push({ sourceUrl, localPath: `${auction.auction_id}/${filename}` });
+      }
+
+      saveAuctionDetail(auction.id, detail, imageRecords);
+      succeeded++;
+    } catch (err) {
+      console.error(`[scrape] failed to fetch detail for auction ${auction.auction_id}:`, err);
+    }
+    await sleep(DETAIL_REQUEST_DELAY_MS);
+  }
+
+  if (succeeded) {
+    console.log(`[scrape] fetched details + images for ${succeeded} auctions`);
+  }
+}
 
 let isScraping = false;
 
@@ -18,6 +56,8 @@ export async function runScrape() {
     const items = await scrapeAuctions();
     recordScrape(items);
     console.log(`[scrape] recorded ${items.length} items at ${new Date().toISOString()}`);
+
+    await scrapeMissingDetails();
   } catch (err) {
     console.error('[scrape] run failed:', err);
   } finally {
