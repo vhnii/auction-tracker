@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { scrapeAuctions } from './scraper.js'
 import { parseDaysLeft, parseDurationMs, formatPrice } from './utils/parse.js'
 import { toThumbPath } from './utils/images.js'
-import { recordScrape, getAuctions } from './db/queries.js'
+import { recordScrape, getAuctions, getAuctionWithDetail } from './db/queries.js'
 import { startScheduler } from './scheduler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -81,6 +81,33 @@ app.get('/dashboard', (req, res) => {
   const hasActiveFilters = Boolean(search || priceMin || priceMax || time || status !== 'active');
 
   res.render('dashboard', { items, stats, search, priceMin, priceMax, time, sort, status, hasActiveFilters });
+})
+
+app.get('/auction/:id', (req, res) => {
+  const data = getAuctionWithDetail(req.params.id);
+  if (!data) return res.status(404).send('Oksjonit ei leitud');
+
+  const { auction, detail, images, priceHistory } = data;
+
+  res.render('auction-detail', {
+    auction: {
+      id: auction.auction_id,
+      title: auction.title,
+      url: auction.url,
+      catastralUnit: auction.catastral_unit || '',
+      startingPrice: formatPrice(auction.starting_price),
+      timeLeft: auction.time_left || '',
+    },
+    detail,
+    images: images.map((img) => ({
+      full: `/images/${img.local_path}`,
+      thumb: `/images/${toThumbPath(img.local_path)}`,
+    })),
+    priceHistory: priceHistory.map((row) => ({
+      price: formatPrice(row.price),
+      date: new Date(row.scraped_at).toLocaleDateString('et-EE'),
+    })),
+  });
 })
 
 app.listen(3000, () => {

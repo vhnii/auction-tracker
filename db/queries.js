@@ -92,6 +92,11 @@ const insertImageStmt = db.prepare(`
   VALUES (?, ?, ?, ?, ?)
 `);
 
+const auctionByPublicIdStmt = db.prepare('SELECT * FROM auctions WHERE auction_id = ?');
+const detailByAuctionRowIdStmt = db.prepare('SELECT * FROM auction_details WHERE auction_id = ?');
+const imagesByAuctionRowIdStmt = db.prepare('SELECT * FROM auction_images WHERE auction_id = ? ORDER BY sort_order');
+const priceHistoryByAuctionRowIdStmt = db.prepare('SELECT price, scraped_at FROM price_history WHERE auction_id = ? ORDER BY scraped_at ASC');
+
 export function recordScrape(items) {
   const now = new Date().toISOString();
   const seenAuctionIds = new Set();
@@ -178,4 +183,24 @@ export function saveAuctionDetail(auctionRowId, detail, imageRecords) {
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+export function getAuctionWithDetail(publicId) {
+  const auction = auctionByPublicIdStmt.get(publicId);
+  if (!auction) return null;
+
+  const priceHistory = [];
+  for (const row of priceHistoryByAuctionRowIdStmt.all(auction.id)) {
+    if (priceHistory.length === 0 || priceHistory[priceHistory.length - 1].price !== row.price) {
+      priceHistory.push(row);
+    }
+  }
+  priceHistory.reverse();
+
+  return {
+    auction,
+    detail: detailByAuctionRowIdStmt.get(auction.id) || null,
+    images: imagesByAuctionRowIdStmt.all(auction.id),
+    priceHistory,
+  };
 }
