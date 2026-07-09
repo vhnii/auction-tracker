@@ -1,0 +1,151 @@
+doctype html
+html(lang="et")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title OksjonTrack
+    script(src="https://cdn.tailwindcss.com")
+    script(src="https://unpkg.com/lucide@latest")
+  body(class="min-h-screen bg-slate-50 flex" style="font-family: system-ui, -apple-system, sans-serif")
+    form(method="get" action="/dashboard" class="flex w-full")
+      div#sidebar-backdrop(class="fixed inset-0 z-30 bg-black/50 hidden md:hidden" onclick="toggleSidebar()")
+      aside#filter-sidebar(class="w-60 bg-slate-900 text-slate-300 hidden md:flex flex-col flex-shrink-0 fixed inset-y-0 left-0 z-40 md:sticky md:top-0 md:h-screen")
+        div(class="p-5 border-b border-slate-800 relative")
+          button(type="button" onclick="toggleSidebar()" class="md:hidden absolute top-4 right-3 p-1.5 text-slate-500 hover:text-white transition-colors")
+            i(data-lucide="x" style="width:16px;height:16px")
+          a(href="/" class="flex items-center gap-2.5 mb-0.5 hover:opacity-80 transition-opacity")
+            div(class="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center flex-shrink-0")
+              i(data-lucide="home" style="width:13px;height:13px;color:white")
+            span(class="text-white font-bold text-[15px] tracking-tight") OksjonTrack
+          p(class="text-[11px] text-slate-500 pl-8") Kinnisvara oksjonid
+
+        div(class="flex-1 overflow-y-auto p-4 space-y-6")
+          div
+            div(class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2") Staatus
+            select(name="status" onchange="this.form.submit()" class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors")
+              option(value="active" selected=(status === 'active')) Käimasolevad
+              option(value="ended" selected=(status === 'ended')) Lõppenud
+              option(value="all" selected=(status === 'all')) Kõik
+
+          div
+            div(class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2") Aeg
+            select(name="time" onchange="this.form.submit()" class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors")
+              option(value="" selected=(time === '')) Kõik
+              option(value="7" selected=(time === '7')) Kuni 7 päeva
+              option(value="14" selected=(time === '14')) Kuni 14 päeva
+              option(value="21" selected=(time === '21')) Kuni 21 päeva
+
+          div
+            div(class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2") Hind (€)
+            div(class="flex gap-2")
+              input(type="number" name="priceMin" placeholder="Min" value=priceMin class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors")
+              input(type="number" name="priceMax" placeholder="Max" value=priceMax class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors")
+
+          button(type="submit" class="w-full py-2 text-sm text-white font-semibold bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors") Filtreeri
+
+          if hasActiveFilters
+            a(href="/dashboard" class="block w-full py-2 text-sm text-center text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors") Tühjenda filtrid
+
+        div(class="px-4 py-3 border-t border-slate-800 flex-shrink-0")
+          p(class="text-[12px] text-slate-600 text-center") Allikas: oksjonikeskus.ee
+
+      div(class="flex-1 flex flex-col min-w-0 overflow-hidden")
+        header(class="sticky top-0 z-10 bg-white border-b border-slate-200 px-5 py-3 flex-shrink-0")
+          div(class="flex items-center gap-3")
+            button(type="button" onclick="toggleSidebar()" class="md:hidden flex items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 transition-colors flex-shrink-0")
+              i(data-lucide="sliders-horizontal" style="width:15px;height:15px")
+            div(class="flex-1 relative")
+              i(data-lucide="search" style="width:15px;height:15px" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none")
+              input(type="text" name="search" placeholder="Otsi kinnisvara..." value=search class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200 transition-all")
+
+            div(class="relative flex items-center")
+              select(name="sort" onchange="this.form.submit()" class="pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer hover:border-slate-300 transition-colors")
+                option(value="time-asc" selected=(sort === 'time-asc')) Aeg (lähim)
+                option(value="price-asc" selected=(sort === 'price-asc')) Hind ↑
+                option(value="price-desc" selected=(sort === 'price-desc')) Hind ↓
+              i(data-lucide=(sort === 'price-desc' ? 'list-sort-descending' : 'list-sort-ascending') style="width:14px;height:14px" class="absolute left-2.5 text-slate-400 pointer-events-none")
+
+        div#stats-bar(class="bg-white border-b border-slate-100 px-5 py-3 flex items-center gap-5 flex-wrap")
+          div(class="flex items-baseline gap-1.5")
+            span(class="text-xl font-black text-slate-900 font-mono tabular-nums")= stats.count
+            span(class="text-xs text-slate-400") oksjonit
+          div(class="w-px h-4 bg-slate-100")
+          div(class="flex items-baseline gap-1.5")
+            span(class="text-sm font-bold text-slate-800 font-mono tabular-nums")= stats.lowestPriceLabel
+            span(class="text-xs text-slate-400") madalaim alghind
+          div(class="w-px h-4 bg-slate-100")
+          div(class="flex items-baseline gap-1.5")
+            span(class="text-sm font-bold text-slate-800 font-mono tabular-nums" data-ends-at=stats.soonestEndsAt)= stats.soonestLabel
+            span(class="text-xs text-slate-400") lähim oksjon
+
+        main(class="flex-1 p-5 overflow-y-auto")
+          if items.length === 0
+            div(class="flex flex-col items-center justify-center py-24 text-center")
+              i(data-lucide="alert-circle" style="width:26px;height:26px;color:#cbd5e1")
+              h3(class="text-base font-semibold text-slate-700 mt-4 mb-1") Ühtegi tulemust ei leitud
+              p(class="text-sm text-slate-400") Muuda otsingut
+          else
+            div#auction-grid(class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4")
+              each item in items
+                article(class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-200 flex flex-col")
+                  a(href=`/auction/${item.id}` class="relative aspect-[4/3] bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden")
+                    if item.thumbnail
+                      img(src=item.thumbnail alt="" loading="lazy" class="w-full h-full object-cover")
+                    else
+                      i(data-lucide="home" style="width:36px;height:36px;color:#e2e8f0")
+                    div(class="absolute top-2.5 left-2.5")
+                      if item.ended
+                        span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-slate-100/95 text-slate-500 border-slate-200 backdrop-blur-sm shadow-sm")
+                          span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400")
+                          span(class="font-mono font-semibold") Lõppenud #{item.endedAt}
+                      else
+                        span(class=`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium backdrop-blur-sm shadow-sm ${item.daysLeft <= 7 ? 'bg-red-50/95 text-red-700 border-red-200' : item.daysLeft <= 14 ? 'bg-amber-50/95 text-amber-700 border-amber-200' : 'bg-white/95 text-slate-500 border-slate-200'}`)
+                          span(class=`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.daysLeft <= 7 ? 'bg-red-500 animate-pulse' : item.daysLeft <= 14 ? 'bg-amber-400' : 'bg-slate-300'}`)
+                          span(class="font-mono font-semibold tabular-nums" data-ends-at=item.endsAt)= item.timeLeft
+
+                  div(class="p-4 flex flex-col flex-1")
+                    h3(class="text-sm font-semibold text-slate-900 leading-snug mb-3 line-clamp-2")
+                      a(href=`/auction/${item.id}`)= item.title
+
+                    div(class="mt-auto space-y-3")
+                      div
+                        div(class="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-0.5") Alghind
+                        div(class="text-lg font-black text-slate-900 font-mono tracking-tight tabular-nums")= item.startingPrice
+
+                      div(class="flex items-center justify-between pt-3 border-t border-slate-100")
+                        if item.catastralUnit
+                          a(href=`https://xgis.maaamet.ee/xgis2/page/app/maainfo?searchid=FUUKAT101x2&TUNNUS=${item.catastralUnit}` target="_blank" rel="noopener noreferrer" title=item.catastralUnit class="text-xs text-blue-500 hover:text-blue-700 font-mono transition-colors truncate max-w-[130px]")= item.catastralUnit
+                        else
+                          span
+                        a(href=item.url target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 transition-colors duration-150")
+                          | Vaata
+                          i(data-lucide="external-link" style="width:11px;height:11px")
+
+    script.
+      lucide.createIcons();
+
+      function formatCountdown(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if (days > 0) return `${days} p, ${hours} h ${minutes} m`;
+        return `${hours} h ${minutes} m ${seconds} s`;
+      }
+
+      function tickCountdowns() {
+        const now = Date.now();
+        document.querySelectorAll('[data-ends-at]').forEach((el) => {
+          el.textContent = formatCountdown(new Date(el.dataset.endsAt).getTime() - now);
+        });
+      }
+
+      tickCountdowns();
+      setInterval(tickCountdowns, 1000);
+
+      function toggleSidebar() {
+        document.getElementById('filter-sidebar').classList.toggle('hidden');
+        document.getElementById('filter-sidebar').classList.toggle('flex');
+        document.getElementById('sidebar-backdrop').classList.toggle('hidden');
+      }

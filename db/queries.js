@@ -25,6 +25,29 @@ const activeAuctionIdsStmt = db.prepare(`SELECT id, auction_id FROM auctions WHE
 
 const endAuctionStmt = db.prepare(`UPDATE auctions SET ended_at = ? WHERE id = ?`);
 
+const auctionsByStatusStmt = {
+  active: db.prepare(`
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+      (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM auctions a
+    WHERE a.ended_at IS NULL
+    ORDER BY a.last_seen_at DESC
+  `),
+  ended: db.prepare(`
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+      (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM auctions a
+    WHERE a.ended_at IS NOT NULL
+    ORDER BY a.ended_at DESC
+  `),
+  all: db.prepare(`
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+      (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM auctions a
+    ORDER BY a.last_seen_at DESC
+  `),
+};
+
 const soonestEndsAtStmt = db.prepare(`
   SELECT MIN(ends_at) as soonest FROM auctions WHERE ended_at IS NULL
 `);
@@ -105,6 +128,11 @@ export function recordScrape(items) {
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+export function getAuctions(status = 'active') {
+  const stmt = auctionsByStatusStmt[status] || auctionsByStatusStmt.active;
+  return stmt.all();
 }
 
 export function getSoonestEndsAt() {
