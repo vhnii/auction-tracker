@@ -5,7 +5,7 @@ import { scrapeAuctions } from './scraper.js'
 import { parseDaysLeft, parseDurationMs, formatPrice } from './utils/parse.js'
 import { toThumbPath } from './utils/images.js'
 import { recordScrape, getAuctions, getAuctionWithDetail } from './db/queries.js'
-import { startScheduler } from './scheduler.js'
+import { startScheduler, runScrape } from './scheduler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -108,6 +108,11 @@ app.get('/auction/:id', (req, res) => {
       date: new Date(row.scraped_at).toLocaleDateString('et-EE'),
     })),
   });
+})
+
+app.post('/scrape', async (req, res) => {
+  await runScrape();
+  res.sendStatus(200);
 })
 
 app.listen(3000, () => {
