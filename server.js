@@ -1,10 +1,9 @@
 import express from 'express'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { scrapeAuctions } from './scraper.js'
 import { parseDaysLeft, parseDurationMs, formatPrice } from './utils/parse.js'
 import { toThumbPath } from './utils/images.js'
-import { recordScrape, getAuctions, getAuctionWithDetail } from './db/queries.js'
+import { getAuctions, getAuctionWithDetail } from './db/queries.js'
 import { startScheduler, runScrape } from './scheduler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -17,13 +16,7 @@ function parseFilterNumber(value) {
 app.set('view engine', 'pug');
 app.use('/images', express.static(path.join(__dirname, 'db', 'images')));
 
-app.get('/', async (req, res) => {
-    const items = await scrapeAuctions();
-    recordScrape(items);
-    res.json({ scraped: items.length, timestamp: new Date().toISOString() });
-})
-
-app.get('/dashboard', (req, res) => {
+app.get('/', (req, res) => {
   const search = req.query.search || '';
   const priceMin = req.query.priceMin || '';
   const priceMax = req.query.priceMax || '';
@@ -117,5 +110,5 @@ app.post('/scrape', async (req, res) => {
 
 app.listen(3000, () => {
   console.log('Server is running on http://localhost:3000')
-  startScheduler();
+  if (process.env.ENABLE_SCHEDULER === 'true') startScheduler();
 })
