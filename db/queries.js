@@ -9,7 +9,7 @@ const insertAuctionStmt = db.prepare(`
 `);
 
 const touchAuctionStmt = db.prepare(`
-  UPDATE auctions SET title = ?, url = ?, catastral_unit = ?, time_left = ?, last_seen_at = ?, ends_at = ?, ended_at = NULL
+  UPDATE auctions SET title = ?, url = ?, catastral_unit = ?, time_left = ?, last_seen_at = ?, ends_at = ?, ended_at = NULL, outcome = NULL
   WHERE auction_id = ?
 `);
 
@@ -27,26 +27,32 @@ const endAuctionStmt = db.prepare(`UPDATE auctions SET ended_at = ? WHERE id = ?
 
 const auctionsByStatusStmt = {
   active: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
     WHERE a.ended_at IS NULL
     ORDER BY a.last_seen_at DESC
   `),
   ended: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
     WHERE a.ended_at IS NOT NULL
     ORDER BY a.ended_at DESC
   `),
   all: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
     ORDER BY a.last_seen_at DESC
   `),
 };
+
+const auctionsNeedingOutcomeCheckStmt = db.prepare(`
+  SELECT id, auction_id, url FROM auctions WHERE ended_at IS NOT NULL AND outcome IS NULL
+`);
+
+const setOutcomeStmt = db.prepare(`UPDATE auctions SET outcome = ? WHERE id = ?`);
 
 const soonestEndsAtStmt = db.prepare(`
   SELECT MIN(ends_at) as soonest FROM auctions WHERE ended_at IS NULL
@@ -61,17 +67,18 @@ const auctionsMissingDetailStmt = db.prepare(`
 
 const upsertDetailStmt = db.prepare(`
   INSERT INTO auction_details (
-    auction_id, address, city, deposit, current_price,
+    auction_id, address, city, deposit, current_price, status,
     registration_start, registration_end, auction_start, auction_end,
     announcement_header, announcement_date, announcement_body, announcement_menetluse_nr,
     announcement_provider, announcement_publisher, announcement_number, scraped_at
   )
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(auction_id) DO UPDATE SET
     address = excluded.address,
     city = excluded.city,
     deposit = excluded.deposit,
     current_price = excluded.current_price,
+    status = excluded.status,
     registration_start = excluded.registration_start,
     registration_end = excluded.registration_end,
     auction_start = excluded.auction_start,
@@ -140,6 +147,14 @@ export function getAuctions(status = 'active') {
   return stmt.all();
 }
 
+export function getAuctionsNeedingOutcomeCheck() {
+  return auctionsNeedingOutcomeCheckStmt.all();
+}
+
+export function setAuctionOutcome(auctionRowId, outcome) {
+  setOutcomeStmt.run(outcome, auctionRowId);
+}
+
 export function getSoonestEndsAt() {
   return soonestEndsAtStmt.get().soonest;
 }
@@ -159,6 +174,7 @@ export function saveAuctionDetail(auctionRowId, detail, imageRecords) {
       detail.city,
       detail.deposit,
       detail.currentPrice,
+      detail.status,
       detail.registrationStart,
       detail.registrationEnd,
       detail.auctionStart,

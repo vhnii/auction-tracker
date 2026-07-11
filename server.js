@@ -46,6 +46,7 @@ app.get('/', (req, res) => {
       thumbnail: row.thumbnail ? `/images/${toThumbPath(row.thumbnail)}` : null,
       ended: Boolean(row.ended_at),
       endedAt: row.ended_at ? new Date(row.ended_at).toLocaleDateString('et-EE') : null,
+      outcome: row.outcome,
     }))
     .filter((item) =>
       item.title.toLowerCase().includes(q)

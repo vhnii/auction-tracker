@@ -17,7 +17,8 @@ db.exec(`
     first_seen_at TEXT NOT NULL,
     last_seen_at TEXT NOT NULL,
     ended_at TEXT,
-    ends_at TEXT
+    ends_at TEXT,
+    outcome TEXT
   );
 
   CREATE TABLE IF NOT EXISTS price_history (
@@ -34,6 +35,7 @@ db.exec(`
     city TEXT,
     deposit TEXT,
     current_price TEXT,
+    status TEXT,
     registration_start TEXT,
     registration_end TEXT,
     auction_start TEXT,
@@ -61,6 +63,15 @@ db.exec(`
 const auctionColumns = db.prepare('PRAGMA table_info(auctions)').all();
 if (!auctionColumns.some((c) => c.name === 'ends_at')) {
   db.exec('ALTER TABLE auctions ADD COLUMN ends_at TEXT');
+}
+
+const auctionDetailColumns = db.prepare('PRAGMA table_info(auction_details)').all();
+if (!auctionDetailColumns.some((c) => c.name === 'status')) {
+  db.exec('ALTER TABLE auction_details ADD COLUMN status TEXT');
+}
+
+if (!auctionColumns.some((c) => c.name === 'outcome')) {
+  db.exec('ALTER TABLE auctions ADD COLUMN outcome TEXT');
 }
 
 export default db;

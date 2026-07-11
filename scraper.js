@@ -60,8 +60,13 @@ export async function scrapeAuctionDetail(url) {
     .get()
     .filter(Boolean);
 
+  const expectedId = url.match(/okid=(\d+)/)?.[1] || null;
+
   return {
+    pageMatchesId: expectedId !== null && $('#col-id').text().trim() === expectedId,
+    upcomingCountdown: getValueByLabel($, 'aega alguseni:'),
     currentPrice: $('#ylemine_hetkhind').text().replace('Hetkehind:', '').trim(),
+    status: $('strong.ending, span.ending').first().text().trim() || null,
     images,
     address: getValueByLabel($, 'aadress:'),
     city: getValueByLabel($, 'linn / vald:'),

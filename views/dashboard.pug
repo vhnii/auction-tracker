@@ -99,9 +99,14 @@ html(lang="et")
                       i(data-lucide="home" style="width:36px;height:36px;color:#e2e8f0")
                     div(class="absolute top-2.5 left-2.5")
                       if item.ended
-                        span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-slate-100/95 text-slate-500 border-slate-200 backdrop-blur-sm shadow-sm")
-                          span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400")
-                          span(class="font-mono font-semibold") Lõppenud #{item.endedAt}
+                        if item.outcome === 'reappraisal'
+                          span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-red-50/95 text-red-700 border-red-200 backdrop-blur-sm shadow-sm")
+                            span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-red-500")
+                            span(class="font-mono font-semibold") Ümberhindamisel
+                        else
+                          span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-slate-100/95 text-slate-500 border-slate-200 backdrop-blur-sm shadow-sm")
+                            span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400")
+                            span(class="font-mono font-semibold") Lõppenud #{item.endedAt}
                       else
                         span(class=`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium backdrop-blur-sm shadow-sm ${item.daysLeft <= 7 ? 'bg-red-50/95 text-red-700 border-red-200' : item.daysLeft <= 14 ? 'bg-amber-50/95 text-amber-700 border-amber-200' : 'bg-white/95 text-slate-500 border-slate-200'}`)
                           span(class=`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.daysLeft <= 7 ? 'bg-red-500 animate-pulse' : item.daysLeft <= 14 ? 'bg-amber-400' : 'bg-slate-300'}`)

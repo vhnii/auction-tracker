@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scrapeAuctions, scrapeAuctionDetail } from './scraper.js';
-import { recordScrape, getSoonestEndsAt, getAuctionsMissingDetail, saveAuctionDetail } from './db/queries.js';
+import { recordScrape, getSoonestEndsAt, getAuctionsMissingDetail, saveAuctionDetail, getAuctionsNeedingOutcomeCheck, setAuctionOutcome } from './db/queries.js';
 import { downloadImage } from './utils/images.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +43,31 @@ async function scrapeMissingDetails() {
   }
 }
 
+async function checkEndedAuctionOutcomes() {
+  const pending = getAuctionsNeedingOutcomeCheck();
+  let reappraisalCount = 0;
+  let concludedCount = 0;
+
+  for (const auction of pending) {
+    try {
+      const detail = await scrapeAuctionDetail(auction.url);
+      const outcome = detail.pageMatchesId && (detail.status || detail.upcomingCountdown)
+        ? 'reappraisal'
+        : 'concluded';
+
+      setAuctionOutcome(auction.id, outcome);
+      if (outcome === 'reappraisal') reappraisalCount++; else concludedCount++;
+    } catch (err) {
+      console.error(`[scrape] failed to check outcome for auction ${auction.auction_id}:`, err);
+    }
+    await sleep(DETAIL_REQUEST_DELAY_MS);
+  }
+
+  if (pending.length) {
+    console.log(`[scrape] outcome check: ${reappraisalCount} re-appraised, ${concludedCount} concluded`);
+  }
+}
+
 let isScraping = false;
 
 export async function runScrape() {
@@ -58,6 +83,7 @@ export async function runScrape() {
     console.log(`[scrape] recorded ${items.length} items at ${new Date().toISOString()}`);
 
     await scrapeMissingDetails();
+    await checkEndedAuctionOutcomes();
   } catch (err) {
     console.error('[scrape] run failed:', err);
   } finally {

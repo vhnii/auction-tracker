@@ -24,6 +24,10 @@ html(lang="et")
             span(class="text-xs") Pilte pole veel laaditud
 
         div(class="p-5")
+          if detail && detail.status
+            div(class="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-bold uppercase tracking-wide")
+              i(data-lucide="alert-triangle" style="width:13px;height:13px")
+              span= detail.status
           h1(class="text-lg font-semibold text-slate-900 mb-3")= auction.title
 
           div(class="flex items-center gap-5 flex-wrap")
