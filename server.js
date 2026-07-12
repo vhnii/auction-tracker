@@ -75,7 +75,12 @@ app.get('/', (req, res) => {
 
   const hasActiveFilters = Boolean(search || priceMin || priceMax || time || status !== 'active');
 
-  res.render('dashboard', { items, stats, search, priceMin, priceMax, time, sort, status, hasActiveFilters });
+  const PAGE_SIZE = 16;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const hasMore = page * PAGE_SIZE < items.length;
+
+  res.render('dashboard', { items: pageItems, stats, search, priceMin, priceMax, time, sort, status, hasActiveFilters, page, hasMore });
 })
 
 app.get('/auction/:id', (req, res) => {

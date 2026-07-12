@@ -135,6 +135,11 @@ html(lang="et")
                           | Vaata
                           i(data-lucide="external-link" style="width:11px;height:11px")
 
+            if hasMore
+              div#load-more-sentinel(class="flex items-center justify-center gap-1.5 py-8 text-xs text-slate-400" data-page=page)
+                i(data-lucide="loader-2" style="width:14px;height:14px" class="animate-spin")
+                span Laen rohkem...
+
     script.
       lucide.createIcons();
 
@@ -195,4 +200,50 @@ html(lang="et")
         document.getElementById('stats-bar').replaceWith(doc.getElementById('stats-bar'));
 
         lucide.createIcons();
+        setupLoadMoreObserver();
       }
+
+      let loadMoreObserver = null;
+
+      function setupLoadMoreObserver() {
+        if (loadMoreObserver) loadMoreObserver.disconnect();
+
+        const sentinel = document.getElementById('load-more-sentinel');
+        if (!sentinel) return;
+
+        loadMoreObserver = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) loadMore();
+        }, { rootMargin: '400px' });
+
+        loadMoreObserver.observe(sentinel);
+      }
+
+      async function loadMore() {
+        const sentinel = document.getElementById('load-more-sentinel');
+        if (!sentinel || sentinel.dataset.loading === 'true') return;
+        sentinel.dataset.loading = 'true';
+
+        const nextPage = Number(sentinel.dataset.page) + 1;
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', nextPage);
+
+        const res = await fetch(window.location.pathname + '?' + params.toString());
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        const grid = document.getElementById('auction-grid');
+        doc.querySelectorAll('#auction-grid > article').forEach((article) => grid.appendChild(article));
+
+        const newSentinel = doc.getElementById('load-more-sentinel');
+        if (newSentinel) {
+          sentinel.dataset.page = nextPage;
+          sentinel.dataset.loading = 'false';
+        } else {
+          loadMoreObserver.disconnect();
+          sentinel.remove();
+        }
+
+        lucide.createIcons();
+      }
+
+      setupLoadMoreObserver();
