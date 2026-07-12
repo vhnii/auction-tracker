@@ -246,4 +246,27 @@ html(lang="et")
         lucide.createIcons();
       }
 
+      const searchInput = document.querySelector('input[name="search"]');
+      let searchDebounce = null;
+      let lastLiveSearch = searchInput.value.trim();
+
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(applyLiveSearch, 300);
+      });
+
+      async function applyLiveSearch() {
+        const value = searchInput.value.trim();
+        if (value.length > 0 && value.length < 3) return;
+        if (value === lastLiveSearch) return;
+        lastLiveSearch = value;
+
+        const params = new URLSearchParams(window.location.search);
+        if (value) params.set('search', value); else params.delete('search');
+        params.delete('page');
+        const qs = params.toString();
+        history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+        await refreshListings();
+      }
+
       setupLoadMoreObserver();
