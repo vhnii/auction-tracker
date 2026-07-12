@@ -28,6 +28,27 @@ export async function scrapeAuctions() {
   return parseListingRows($);
 }
 
+const LISTING_PAGE_SIZE = 100;
+
+export async function scrapeUpcomingAuctions() {
+  const items = [];
+
+  for (let page = 1; ; page++) {
+    const response = await fetch(`https://www.oksjonikeskus.ee/?varaliik=KI&offers=reg&onpage=${LISTING_PAGE_SIZE}&page=${page}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch upcoming auctions (page ${page}): ${response.status}`);
+    }
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const rows = parseListingRows($);
+
+    items.push(...rows);
+    if (rows.length < LISTING_PAGE_SIZE) break;
+  }
+
+  return items;
+}
+
 function getValueByLabel($, label) {
   const labelEl = $('strong').filter((_i, el) => $(el).text().trim() === label).first();
   return labelEl.closest('td, th').next('td, th').text().trim();

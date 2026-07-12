@@ -39,7 +39,7 @@ html(lang="et")
                 div(class="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-0.5") Hetkehind
                 div(class="text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums")= detail.current_price
             div
-              div(class="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-0.5") Aega jäänud
+              div(class="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-0.5")= auction.upcoming ? 'Algab' : 'Aega jäänud'
               div(class="text-sm font-semibold text-slate-700 font-mono tabular-nums")= auction.timeLeft
 
             a(href=auction.url target="_blank" rel="noopener noreferrer" class="ml-auto inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 transition-colors")

@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scrapeAuctions, scrapeAuctionDetail } from './scraper.js';
-import { recordScrape, getSoonestEndsAt, getAuctionsMissingDetail, saveAuctionDetail, getAuctionsNeedingOutcomeCheck, setAuctionOutcome } from './db/queries.js';
+import { scrapeAuctions, scrapeUpcomingAuctions, scrapeAuctionDetail } from './scraper.js';
+import { recordScrape, recordUpcomingAuctions, getSoonestEndsAt, getAuctionsMissingDetail, saveAuctionDetail, getAuctionsNeedingOutcomeCheck, setAuctionOutcome } from './db/queries.js';
 import { downloadImage } from './utils/images.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -81,6 +81,10 @@ export async function runScrape() {
     const items = await scrapeAuctions();
     recordScrape(items);
     console.log(`[scrape] recorded ${items.length} items at ${new Date().toISOString()}`);
+
+    const upcomingItems = await scrapeUpcomingAuctions();
+    recordUpcomingAuctions(upcomingItems);
+    console.log(`[scrape] recorded ${upcomingItems.length} upcoming (registration-open) items`);
 
     await scrapeMissingDetails();
     await checkEndedAuctionOutcomes();

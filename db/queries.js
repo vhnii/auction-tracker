@@ -9,8 +9,18 @@ const insertAuctionStmt = db.prepare(`
 `);
 
 const touchAuctionStmt = db.prepare(`
-  UPDATE auctions SET title = ?, url = ?, catastral_unit = ?, time_left = ?, last_seen_at = ?, ends_at = ?, ended_at = NULL, outcome = NULL
+  UPDATE auctions SET title = ?, url = ?, catastral_unit = ?, time_left = ?, last_seen_at = ?, ends_at = ?, ended_at = NULL, outcome = NULL, phase = 'active'
   WHERE auction_id = ?
+`);
+
+const insertUpcomingAuctionStmt = db.prepare(`
+  INSERT INTO auctions (auction_id, title, url, catastral_unit, starting_price, time_left, first_seen_at, last_seen_at, phase)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'registration')
+`);
+
+const touchUpcomingAuctionStmt = db.prepare(`
+  UPDATE auctions SET title = ?, url = ?, catastral_unit = ?, time_left = ?, last_seen_at = ?
+  WHERE auction_id = ? AND phase = 'registration'
 `);
 
 const latestSnapshotStmt = db.prepare(`
@@ -21,27 +31,34 @@ const insertSnapshotStmt = db.prepare(`
   INSERT INTO price_history (auction_id, price, scraped_at) VALUES (?, ?, ?)
 `);
 
-const activeAuctionIdsStmt = db.prepare(`SELECT id, auction_id FROM auctions WHERE ended_at IS NULL`);
+const activeAuctionIdsStmt = db.prepare(`SELECT id, auction_id FROM auctions WHERE ended_at IS NULL AND phase = 'active'`);
 
 const endAuctionStmt = db.prepare(`UPDATE auctions SET ended_at = ? WHERE id = ?`);
 
 const auctionsByStatusStmt = {
   active: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome, a.phase,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
-    WHERE a.ended_at IS NULL
+    WHERE a.ended_at IS NULL AND a.phase = 'active'
     ORDER BY a.last_seen_at DESC
   `),
   ended: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome, a.phase,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
     WHERE a.ended_at IS NOT NULL
     ORDER BY a.ended_at DESC
   `),
+  upcoming: db.prepare(`
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome, a.phase,
+      (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
+    FROM auctions a
+    WHERE a.phase = 'registration'
+    ORDER BY a.last_seen_at DESC
+  `),
   all: db.prepare(`
-    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome,
+    SELECT a.auction_id, a.title, a.url, a.catastral_unit, a.starting_price, a.time_left, a.ended_at, a.ends_at, a.outcome, a.phase,
       (SELECT local_path FROM auction_images i WHERE i.auction_id = a.id ORDER BY sort_order LIMIT 1) AS thumbnail
     FROM auctions a
     ORDER BY a.last_seen_at DESC
@@ -55,7 +72,7 @@ const auctionsNeedingOutcomeCheckStmt = db.prepare(`
 const setOutcomeStmt = db.prepare(`UPDATE auctions SET outcome = ? WHERE id = ?`);
 
 const soonestEndsAtStmt = db.prepare(`
-  SELECT MIN(ends_at) as soonest FROM auctions WHERE ended_at IS NULL
+  SELECT MIN(ends_at) as soonest FROM auctions WHERE ended_at IS NULL AND phase = 'active'
 `);
 
 const auctionsMissingDetailStmt = db.prepare(`
@@ -133,6 +150,30 @@ export function recordScrape(items) {
       if (!seenAuctionIds.has(row.auction_id)) {
         endAuctionStmt.run(now, row.id);
       }
+    }
+
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+export function recordUpcomingAuctions(items) {
+  const now = new Date().toISOString();
+
+  db.exec('BEGIN');
+  try {
+    for (const item of items) {
+      const price = parsePrice(item.startingPrice);
+      const existing = getAuctionStmt.get(item.id);
+
+      if (!existing) {
+        insertUpcomingAuctionStmt.run(item.id, item.title, item.url, item.catastralUnit || null, price, item.timeLeft, now, now);
+      } else if (existing.phase === 'registration') {
+        touchUpcomingAuctionStmt.run(item.title, item.url, item.catastralUnit || null, item.timeLeft, now, item.id);
+      }
+      // if it already exists as 'active' or already ended, the aktiiv scrape owns it — leave untouched
     }
 
     db.exec('COMMIT');

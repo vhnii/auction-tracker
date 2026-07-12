@@ -24,6 +24,7 @@ html(lang="et")
             div(class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2") Staatus
             select(name="status" onchange="this.form.submit()" class="w-full px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors")
               option(value="active" selected=(status === 'active')) Käimasolevad
+              option(value="upcoming" selected=(status === 'upcoming')) Registreerimine avatud
               option(value="ended" selected=(status === 'ended')) Lõppenud
               option(value="all" selected=(status === 'all')) Kõik
 
@@ -107,6 +108,10 @@ html(lang="et")
                           span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-slate-100/95 text-slate-500 border-slate-200 backdrop-blur-sm shadow-sm")
                             span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400")
                             span(class="font-mono font-semibold") Lõppenud #{item.endedAt}
+                      else if item.upcoming
+                        span(class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium bg-blue-50/95 text-blue-700 border-blue-200 backdrop-blur-sm shadow-sm")
+                          span(class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-blue-500")
+                          span(class="font-mono font-semibold tabular-nums") Algab: #{item.timeLeft}
                       else
                         span(class=`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium backdrop-blur-sm shadow-sm ${item.daysLeft <= 7 ? 'bg-red-50/95 text-red-700 border-red-200' : item.daysLeft <= 14 ? 'bg-amber-50/95 text-amber-700 border-amber-200' : 'bg-white/95 text-slate-500 border-slate-200'}`)
                           span(class=`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.daysLeft <= 7 ? 'bg-red-500 animate-pulse' : item.daysLeft <= 14 ? 'bg-amber-400' : 'bg-slate-300'}`)

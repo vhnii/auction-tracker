@@ -18,7 +18,8 @@ db.exec(`
     last_seen_at TEXT NOT NULL,
     ended_at TEXT,
     ends_at TEXT,
-    outcome TEXT
+    outcome TEXT,
+    phase TEXT NOT NULL DEFAULT 'active'
   );
 
   CREATE TABLE IF NOT EXISTS price_history (
@@ -72,6 +73,10 @@ if (!auctionDetailColumns.some((c) => c.name === 'status')) {
 
 if (!auctionColumns.some((c) => c.name === 'outcome')) {
   db.exec('ALTER TABLE auctions ADD COLUMN outcome TEXT');
+}
+
+if (!auctionColumns.some((c) => c.name === 'phase')) {
+  db.exec(`ALTER TABLE auctions ADD COLUMN phase TEXT NOT NULL DEFAULT 'active'`);
 }
 
 export default db;

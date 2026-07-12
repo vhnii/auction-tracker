@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
   const priceMax = req.query.priceMax || '';
   const time = req.query.time || '';
   const sort = req.query.sort || 'time-asc';
-  const status = ['active', 'ended', 'all'].includes(req.query.status) ? req.query.status : 'active';
+  const status = ['active', 'ended', 'upcoming', 'all'].includes(req.query.status) ? req.query.status : 'active';
 
   const q = search.toLowerCase();
   const min = parseFilterNumber(priceMin);
@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
       ended: Boolean(row.ended_at),
       endedAt: row.ended_at ? new Date(row.ended_at).toLocaleDateString('et-EE') : null,
       outcome: row.outcome,
+      upcoming: row.phase === 'registration',
     }))
     .filter((item) =>
       item.title.toLowerCase().includes(q)
@@ -91,6 +92,7 @@ app.get('/auction/:id', (req, res) => {
       catastralUnit: auction.catastral_unit || '',
       startingPrice: formatPrice(auction.starting_price),
       timeLeft: auction.time_left || '',
+      upcoming: auction.phase === 'registration',
     },
     detail,
     images: images.map((img) => ({
