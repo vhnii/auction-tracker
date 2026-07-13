@@ -66,6 +66,27 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Single-image pages have no <img> thumbnails in the gallery column (the image
+// is injected by client-side JS), so prefer the lightGalleryData JSON embedded
+// in the page — it lists every image on both single- and multi-image pages.
+function parseGalleryImages($, html) {
+  const match = html.match(/lightGalleryData\s*=\s*(\[.*\]);/);
+  if (match) {
+    try {
+      const urls = JSON.parse(match[1])
+        .map((entry) => entry.thumb || entry.src)
+        .filter(Boolean);
+      if (urls.length) return urls;
+    } catch {
+      // malformed JSON — fall back to the DOM selector below
+    }
+  }
+  return $('#bid-content-gallery1_right_col img')
+    .map((_i, el) => $(el).attr('src'))
+    .get()
+    .filter(Boolean);
+}
+
 export async function scrapeAuctionDetail(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -76,10 +97,8 @@ export async function scrapeAuctionDetail(url) {
 
   const dates = $('.generalInfoTable2date');
 
-  const images = $('#bid-content-gallery1_right_col img')
-    .map((_i, el) => $(el).attr('src'))
-    .get()
-    .filter(Boolean);
+  // some pages use relative /media/... paths — resolve against the page URL
+  const images = parseGalleryImages($, html).map((u) => new URL(u, url).href);
 
   const expectedId = url.match(/okid=(\d+)/)?.[1] || null;
 
