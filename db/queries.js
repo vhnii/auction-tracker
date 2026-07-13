@@ -82,6 +82,13 @@ const auctionsMissingDetailStmt = db.prepare(`
   WHERE a.ended_at IS NULL AND d.id IS NULL
 `);
 
+const auctionsMissingImagesStmt = db.prepare(`
+  SELECT a.id, a.auction_id, a.url
+  FROM auctions a
+  JOIN auction_details d ON d.auction_id = a.id
+  WHERE NOT EXISTS (SELECT 1 FROM auction_images i WHERE i.auction_id = a.id)
+`);
+
 const upsertDetailStmt = db.prepare(`
   INSERT INTO auction_details (
     auction_id, address, city, deposit, current_price, status,
@@ -202,6 +209,27 @@ export function getSoonestEndsAt() {
 
 export function getAuctionsMissingDetail() {
   return auctionsMissingDetailStmt.all();
+}
+
+export function getAuctionsMissingImages() {
+  return auctionsMissingImagesStmt.all();
+}
+
+export function saveAuctionImages(auctionRowId, imageRecords) {
+  const now = new Date().toISOString();
+
+  db.exec('BEGIN');
+  try {
+    deleteImagesStmt.run(auctionRowId);
+    imageRecords.forEach((img, i) => {
+      insertImageStmt.run(auctionRowId, img.sourceUrl, img.localPath, i, now);
+    });
+
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 export function saveAuctionDetail(auctionRowId, detail, imageRecords) {
