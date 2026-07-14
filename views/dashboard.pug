@@ -66,9 +66,15 @@ html(lang="et")
                 option(value="price-desc" selected=(sort === 'price-desc')) Hind ↓
               i(data-lucide=(sort === 'price-desc' ? 'list-sort-descending' : 'list-sort-ascending') style="width:14px;height:14px" class="absolute left-2.5 text-slate-400 pointer-events-none")
 
-            button#scrape-btn(type="button" onclick="scrapeNow()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 hover:border-slate-300 transition-colors flex-shrink-0")
-              i(data-lucide="refresh-cw" style="width:14px;height:14px")
-              span(class="hidden sm:inline") Uuenda andmeid
+            div(class="relative flex-shrink-0")
+              div(class="flex")
+                button#scrape-btn(type="button" onclick="scrapeNow()" class="flex items-center gap-1.5 px-3 py-2 rounded-l-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 hover:border-slate-300 transition-colors")
+                  i(data-lucide="refresh-cw" style="width:14px;height:14px")
+                  span(class="hidden sm:inline") Uuenda andmeid
+                button(type="button" onclick="toggleScrapeMenu()" class="flex items-center px-1.5 py-2 rounded-r-xl border border-l-0 border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 transition-colors")
+                  i(data-lucide="chevron-down" style="width:14px;height:14px")
+              div#scrape-menu(class="hidden absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 py-1 min-w-max")
+                button(type="button" onclick="scrapeNow(true)" class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50") Uuenda kõik andmeid
 
         div#stats-bar(class="bg-white border-b border-slate-100 px-5 py-3 flex items-center gap-5 flex-wrap")
           div(class="flex items-baseline gap-1.5")
@@ -169,7 +175,12 @@ html(lang="et")
         document.getElementById('sidebar-backdrop').classList.toggle('hidden');
       }
 
-      async function scrapeNow() {
+      function toggleScrapeMenu() {
+        document.getElementById('scrape-menu').classList.toggle('hidden');
+      }
+
+      async function scrapeNow(full = false) {
+        document.getElementById('scrape-menu').classList.add('hidden');
         const btn = document.getElementById('scrape-btn');
         const label = btn.querySelector('span');
         const originalLabel = label.textContent;
@@ -178,7 +189,7 @@ html(lang="et")
         label.textContent = 'Uuendan...';
 
         try {
-          await fetch('/scrape', { method: 'POST' });
+          await fetch(full ? '/scrape?full=1' : '/scrape', { method: 'POST' });
           await refreshListings();
           label.textContent = 'Uuendatud';
         } catch (err) {

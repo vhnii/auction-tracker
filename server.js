@@ -112,7 +112,7 @@ app.get('/auction/:id', (req, res) => {
 })
 
 app.post('/scrape', async (req, res) => {
-  await runScrape();
+  await runScrape({ quick: req.query.full !== '1' });
   res.sendStatus(200);
 })
 

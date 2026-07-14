@@ -70,7 +70,10 @@ async function checkEndedAuctionOutcomes() {
 
 let isScraping = false;
 
-export async function runScrape() {
+// quick: only the active-auction listing + missing details/images.
+// Full runs also scrape upcoming (registration-open) auctions and check
+// outcomes of ended auctions — needed twice a day, not on every refresh.
+export async function runScrape({ quick = false } = {}) {
   if (isScraping) {
     console.log('[scrape] skipped: already running');
     return;
@@ -82,12 +85,16 @@ export async function runScrape() {
     recordScrape(items);
     console.log(`[scrape] recorded ${items.length} items at ${new Date().toISOString()}`);
 
-    const upcomingItems = await scrapeUpcomingAuctions();
-    recordUpcomingAuctions(upcomingItems);
-    console.log(`[scrape] recorded ${upcomingItems.length} upcoming (registration-open) items`);
+    if (!quick) {
+      const upcomingItems = await scrapeUpcomingAuctions();
+      recordUpcomingAuctions(upcomingItems);
+      console.log(`[scrape] recorded ${upcomingItems.length} upcoming (registration-open) items`);
+    }
 
     await scrapeMissingDetails();
-    await checkEndedAuctionOutcomes();
+    if (!quick) {
+      await checkEndedAuctionOutcomes();
+    }
   } catch (err) {
     console.error('[scrape] run failed:', err);
   } finally {
@@ -106,7 +113,7 @@ export function startScheduler() {
 
     const msUntilEnd = new Date(soonestEndsAt).getTime() - Date.now();
     if (msUntilEnd <= CLOSING_WINDOW_MS) {
-      await runScrape();
+      await runScrape({ quick: true });
     }
   }, WATCH_INTERVAL_MS);
 
