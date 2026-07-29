@@ -34,8 +34,12 @@ for (const auction of pending) {
 
     const imageRecords = [];
     for (const thumbUrl of detail.images) {
-      const { filename, sourceUrl } = await downloadImage(thumbUrl, path.join(IMAGES_DIR, auction.auction_id));
-      imageRecords.push({ sourceUrl, localPath: `${auction.auction_id}/${filename}` });
+      try {
+        const { filename, sourceUrl } = await downloadImage(thumbUrl, path.join(IMAGES_DIR, auction.auction_id));
+        imageRecords.push({ sourceUrl, localPath: `${auction.auction_id}/${filename}` });
+      } catch (err) {
+        console.error(`[backfill] failed to download image ${thumbUrl} for auction ${auction.auction_id}:`, err.message);
+      }
     }
 
     saveAuctionImages(auction.id, imageRecords);
