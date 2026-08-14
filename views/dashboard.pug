@@ -133,8 +133,10 @@ html(lang="et")
                         div(class="text-lg font-black text-slate-900 font-mono tracking-tight tabular-nums")= item.startingPrice
 
                       div(class="flex items-center justify-between pt-3 border-t border-slate-100")
-                        if item.catastralUnit
-                          a(href=`https://xgis.maaamet.ee/xgis2/page/app/maainfo?searchid=FUUKAT101x2&TUNNUS=${item.catastralUnit}` target="_blank" rel="noopener noreferrer" title=item.catastralUnit class="text-xs text-blue-500 hover:text-blue-700 font-mono transition-colors truncate max-w-[130px]")= item.catastralUnit
+                        if item.catastralUnits.length
+                          div(class="min-w-0 max-w-[130px]")
+                            each unit in item.catastralUnits
+                              a(href=`https://xgis.maaamet.ee/xgis2/page/app/maainfo?searchid=FUUKAT101x2&TUNNUS=${unit}` target="_blank" rel="noopener noreferrer" title=unit class="block text-xs text-blue-500 hover:text-blue-700 font-mono transition-colors truncate")= unit
                         else
                           span
                         a(href=item.url target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 transition-colors duration-150")

@@ -67,11 +67,13 @@ html(lang="et")
               div
                 dt(class="text-[11px] text-slate-400 uppercase tracking-widest") Linn / vald
                 dd= detail.city
-            if auction.catastralUnit
+            if auction.catastralUnits.length
               div
                 dt(class="text-[11px] text-slate-400 uppercase tracking-widest") Katastritunnus
                 dd
-                  a(href=`https://xgis.maaamet.ee/xgis2/page/app/maainfo?searchid=FUUKAT101x2&TUNNUS=${auction.catastralUnit}` target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 font-mono")= auction.catastralUnit
+                  each unit in auction.catastralUnits
+                    div
+                      a(href=`https://xgis.maaamet.ee/xgis2/page/app/maainfo?searchid=FUUKAT101x2&TUNNUS=${unit}` target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 font-mono")= unit
             if detail.deposit
               div
                 dt(class="text-[11px] text-slate-400 uppercase tracking-widest") Tagatisraha

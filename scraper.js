@@ -11,7 +11,10 @@ function parseListingRows($) {
       url: 'https://www.oksjonikeskus.ee/' + anchor.attr('href'),
       startingPrice: $(el).find('.alghind').text().replace('Alghind:', '').trim(),
       timeLeft: $(el).find('.timeLeft').text().trim(),
-      catastralUnit: $(el).find('a[href*="maaamet.ee"]').text().trim(),
+      // multi-property auctions list one link per cadastral unit; .text() on the
+      // set would concatenate them with no separator (the whitespace between the
+      // anchors belongs to the parent, not to any anchor)
+      catastralUnit: $(el).find('a[href*="maaamet.ee"]').map((_j, a) => $(a).text().trim()).get().join(' '),
     });
   });
   return items;
